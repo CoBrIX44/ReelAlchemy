@@ -1,14 +1,25 @@
 {
-  "name": "instagram-automation",
+  "name": "reelalchemy",
   "version": "1.0.0",
-  "description": "",
+  "description": "Local-first automation for turning Instagram Reels into caption-ready stories.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Tests are not configured yet.\"",
+    "browser:test": "node ./browser/test-login.js",
+    "browser:discover": "node ./browser/discover-my-reels.js",
+    "browser:download": "node ./browser/download-latest-reel.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "instagram",
+    "reels",
+    "automation",
+    "n8n",
+    "playwright",
+    "shazam",
+    "ollama"
+  ],
+  "author": "CoBrIX44",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "playwright": "^1.63.0"
