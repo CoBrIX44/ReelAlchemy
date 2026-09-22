@@ -1,0 +1,358 @@
+{
+  "name": "Instagram Reel Caption Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7865b95a-f2db-447a-9ca1-6cb6061fceef",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "command": "cd /d F:\\instagram-automation && node .\\browser\\download-latest-reel.js"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "6455d99b-da9f-4bf2-95f8-79c5ed8c4512",
+      "name": "Downloads the Reel"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const output = String($json.stdout || \"\");\n\nconst lines = output\n  .split(/\\r?\\n/)\n  .map(line => line.trim())\n  .filter(Boolean);\n\nlet result = null;\n\nfor (let i = lines.length - 1; i >= 0; i--) {\n  const line = lines[i];\n\n  if (!line.startsWith(\"{\") || !line.endsWith(\"}\")) {\n    continue;\n  }\n\n  try {\n    const parsed = JSON.parse(line);\n\n    if (\n      parsed &&\n      parsed.success === true &&\n      parsed.media_path\n    ) {\n      result = parsed;\n      break;\n    }\n  } catch (error) {}\n}\n\nif (!result) {\n  throw new Error(\n    \"Could not find successful Reel JSON in output.\"\n  );\n}\n\nreturn {\n  json: {\n    ...result,\n    music_text: result.music_text || null,\n    music_url: result.music_url || null\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "9db061ed-8e0f-402d-b25e-4354b7464a14",
+      "name": "Parse Reel Result"
+    },
+    {
+      "parameters": {
+        "command": "=ffmpeg -y -i \"{{$json.media_path}}\" -vn -ac 1 -ar 44100 \"F:\\instagram-automation\\audio\\reel.wav\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "a4769f80-a5a6-4d92-87cd-147b9a00848b",
+      "name": "Extracting Audio"
+    },
+    {
+      "parameters": {
+        "command": "=cd /d F:\\instagram-automation && .\\.venv\\Scripts\\python.exe .\\scripts\\fetch_lyrics.py \"{{$json.song.artist}}\" \"{{$json.song.title}}\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1952,
+        0
+      ],
+      "id": "f4aa4a0f-1bc8-4d1c-b50c-eaedaf6afad5",
+      "name": "Fetch Lyrics"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const output = String($json.stdout || \"\");\n\nconst lines = output\n  .split(/\\r?\\n/)\n  .map(line => line.trim())\n  .filter(Boolean);\n\nlet result = null;\n\n// Find the final JSON object printed by fetch_lyrics.py\nfor (let i = lines.length - 1; i >= 0; i--) {\n  const line = lines[i];\n\n  if (!line.startsWith(\"{\") || !line.endsWith(\"}\")) {\n    continue;\n  }\n\n  try {\n    const parsed = JSON.parse(line);\n\n    if (\n      parsed &&\n      parsed.success === true &&\n      parsed.random_snippet\n    ) {\n      result = parsed;\n      break;\n    }\n  } catch (error) {}\n}\n\nif (!result) {\n  throw new Error(\n    \"Could not find successful lyrics JSON in Fetch Lyrics output.\"\n  );\n}\n\n\n// Make sure the important fields exist\nif (!result.artist || !result.title) {\n  throw new Error(\n    \"Lyrics result is missing artist or title.\"\n  );\n}\n\nif (!result.random_snippet) {\n  throw new Error(\n    \"Lyrics result is missing random lyric snippet.\"\n  );\n}\n\n\n// Return clean structured data\nreturn {\n  json: {\n    success: true,\n\n    artist: result.artist,\n    title: result.title,\n\n    song: {\n      artist: result.artist,\n      title: result.title\n    },\n\n    lyrics_source: result.source || \"Tamil2Lyrics\",\n    lyrics_url: result.url || \"\",\n\n    lyrics: result.lyrics || \"\",\n    lyric_lines: result.lyric_lines || [],\n\n    random_snippet: result.random_snippet,\n\n    song_source: $json.song_source || null\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2176,
+        0
+      ],
+      "id": "02a84be2-3985-4db9-8657-b740014284af",
+      "name": "Parse Lyrics"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:11434/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2624,
+        0
+      ],
+      "id": "1c133eb6-ff02-430a-9c87-455a19ab172c",
+      "name": "Ollama Caption Generator"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// ---------------------------------------------------------\n// PREPARE OLLAMA REQUEST\n// ---------------------------------------------------------\n\nconst title = String($json.song?.title || \"\").trim();\nconst artist = String($json.song?.artist || \"\").trim();\nconst lyric = String($json.random_snippet || \"\").trim();\n\n\n// ---------------------------------------------------------\n// VALIDATION\n// ---------------------------------------------------------\n\nif (!title) {\n  throw new Error(\"Song title is missing.\");\n}\n\nif (!artist) {\n  throw new Error(\"Artist name is missing.\");\n}\n\nif (!lyric) {\n  throw new Error(\"Random lyric snippet is missing.\");\n}\n\n\n// ---------------------------------------------------------\n// OLLAMA REQUEST\n// ---------------------------------------------------------\n\nreturn {\n  json: {\n    model: \"gemma3\",\n    stream: false,\n\n    messages: [\n      {\n        role: \"system\",\n\n        content:\n          \"You are an Instagram caption writer. \" +\n          \"Write natural, human-sounding Instagram captions. \" +\n          \"The provided lyric is copyrighted text supplied by the user. \" +\n          \"You must reproduce the provided lyric exactly as given. \" +\n          \"Never translate it, rewrite it, extend it, or invent additional lyrics. \" +\n          \"Do not explain your answer.\"\n      },\n\n      {\n        role: \"user\",\n\n        content: `Create a short Instagram caption for this Reel.\n\nSong: ${title}\nArtist: ${artist}\n\nOriginal lyric snippet:\n${lyric}\n\nRules:\n- Keep the lyric EXACTLY as provided.\n- Keep the lyric in its original language.\n- Do NOT translate the lyric.\n- Do NOT rewrite the lyric.\n- Do NOT add or invent any other lyrics.\n- Use the provided lyric naturally in the caption.\n- Write ONE short, natural, aesthetic Instagram caption.\n- Make it sound like a real person wrote it.\n- Do not sound promotional.\n- Do not mention that you are an AI.\n- Add 5 to 8 relevant hashtags.\n- Hashtags should relate to the Reel, song, language, music, or mood.\n- Do not explain your answer.\n\nReturn ONLY valid JSON in exactly this format:\n{\"caption\":\"your caption\",\"hashtags\":[\"#tag1\",\"#tag2\",\"#tag3\"]}`\n      }\n    ]\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        0
+      ],
+      "id": "4b1e3685-c640-4f9c-a66b-cc514449582e",
+      "name": "Prepare Ollama Request"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Get the original Reel metadata from Parse Reel Result\nconst reel = $('Parse Reel Result').item.json;\n\n// Get music information\nconst musicText = String(reel.music_text || \"\").trim();\nconst musicUrl = String(reel.music_url || \"\").trim();\n\nconst normalized = musicText.toLowerCase();\n\nconst genericAudioNames = [\n  \"original audio\",\n  \"original sound\",\n  \"original audio - instagram\",\n  \"original sound - instagram\"\n];\n\nconst isGenericAudio =\n  !musicText ||\n  genericAudioNames.some(name => normalized.includes(name));\n\nconst instagramMusicAvailable =\n  !isGenericAudio &&\n  (\n    musicUrl.includes(\"/reels/audio/\") ||\n    musicUrl.includes(\"/music/\")\n  );\n\nreturn {\n  json: {\n    ...reel,\n\n    // Keep the audio file information\n    audio_path: \"F:\\\\instagram-automation\\\\audio\\\\reel.wav\",\n\n    // Song detection information\n    instagram_music_available: instagramMusicAvailable,\n\n    song_source: instagramMusicAvailable\n      ? \"instagram\"\n      : \"shazam\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "id": "36501710-deb4-49ac-b1d0-52bd49a5a838",
+      "name": "Determine Song Source"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "00d73710-5693-4fd3-bb47-40a4db99c930",
+              "leftValue": "={{ $json.instagram_music_available }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "04527d85-9f47-4ebc-9d40-eeb6d3111de5",
+      "name": "Instagram Music Available?"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const musicText = String($json.music_text || \"\").trim();\n\nif (!musicText) {\n  throw new Error(\"Instagram music information is missing.\");\n}\n\n// Instagram normally formats this as:\n// Artist • Song Title\n//\n// Use the LAST bullet so multiple artists are preserved.\nconst separator = \"•\";\nconst separatorIndex = musicText.lastIndexOf(separator);\n\nif (separatorIndex === -1) {\n  throw new Error(\n    `Could not separate artist and title from Instagram music: ${musicText}`\n  );\n}\n\nconst artist = musicText\n  .slice(0, separatorIndex)\n  .trim();\n\nconst title = musicText\n  .slice(separatorIndex + separator.length)\n  .trim();\n\nif (!artist || !title) {\n  throw new Error(\n    `Invalid Instagram music information: ${musicText}`\n  );\n}\n\nreturn {\n  json: {\n    ...$json,\n\n    song: {\n      artist,\n      title\n    },\n\n    song_source: \"instagram\"\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "id": "270b5f60-04c1-4d4e-9768-2081137d5187",
+      "name": "Parse Instagram Song"
+    },
+    {
+      "parameters": {
+        "command": "cd /d F:\\instagram-automation && .\\.venv\\Scripts\\python.exe .\\scripts\\identify_song.py \"F:\\instagram-automation\\audio\\reel.wav\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        144
+      ],
+      "id": "dd01cb1d-17ae-458b-b45d-4a1cebc9d188",
+      "name": "Identify Song with Shazam",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = String($json.stdout || \"\");\n\nconst lines = output\n  .split(/\\r?\\n/)\n  .map(line => line.trim())\n  .filter(Boolean);\n\nlet result = null;\n\n// Find the final JSON object printed by the Shazam script\nfor (let i = lines.length - 1; i >= 0; i--) {\n  const line = lines[i];\n\n  if (!line.startsWith(\"{\") || !line.endsWith(\"}\")) {\n    continue;\n  }\n\n  try {\n    const parsed = JSON.parse(line);\n\n    if (parsed && typeof parsed.success === \"boolean\") {\n      result = parsed;\n      break;\n    }\n  } catch (error) {}\n}\n\nif (!result) {\n  throw new Error(\"Could not find Shazam JSON result.\");\n}\n\n\n// ---------------------------------------------------------\n// SHAZAM FAILED\n// ---------------------------------------------------------\n\nif (result.success !== true) {\n  throw new Error(\n    result.error || \"Song could not be identified by Shazam.\"\n  );\n}\n\n\n// ---------------------------------------------------------\n// SHAZAM SUCCEEDED\n// ---------------------------------------------------------\n\nconst artist = String(\n  result.artist ||\n  result.artists ||\n  result.subtitle ||\n  \"\"\n).trim();\n\nconst title = String(\n  result.title ||\n  result.track ||\n  \"\"\n).trim();\n\n\n// Make sure both are available\nif (!artist || !title) {\n  throw new Error(\n    \"Shazam identified a result, but artist/title were missing.\"\n  );\n}\n\n\n// ---------------------------------------------------------\n// STANDARD SONG FORMAT\n// This is the same structure used by Parse Instagram Song\n// ---------------------------------------------------------\n\nreturn {\n  json: {\n    success: true,\n    song_identified: true,\n    song_source: \"shazam\",\n\n    song: {\n      artist: artist,\n      title: title\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        160
+      ],
+      "id": "1e6c2e28-c4ac-4883-9a2f-4e4ff5f8639c",
+      "name": "Parse Shazam Result"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Downloads the Reel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Downloads the Reel": {
+      "main": [
+        [
+          {
+            "node": "Parse Reel Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reel Result": {
+      "main": [
+        [
+          {
+            "node": "Extracting Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extracting Audio": {
+      "main": [
+        [
+          {
+            "node": "Determine Song Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Lyrics": {
+      "main": [
+        [
+          {
+            "node": "Parse Lyrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Lyrics": {
+      "main": [
+        [
+          {
+            "node": "Prepare Ollama Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Ollama Request": {
+      "main": [
+        [
+          {
+            "node": "Ollama Caption Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Song Source": {
+      "main": [
+        [
+          {
+            "node": "Instagram Music Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instagram Music Available?": {
+      "main": [
+        [
+          {
+            "node": "Parse Instagram Song",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Identify Song with Shazam",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Instagram Song": {
+      "main": [
+        [
+          {
+            "node": "Fetch Lyrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Song with Shazam": {
+      "main": [
+        [
+          {
+            "node": "Parse Shazam Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Shazam Result": {
+      "main": [
+        [
+          {
+            "node": "Fetch Lyrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e01b9b93-2e5f-486a-b4d9-5f45f968ffdb",
+  "meta": {
+    "instanceId": "aec62e872c8b6f67ee1e407946b5e9cd1b233e9d94b2ba4b81aadd0496b5e179"
+  },
+  "nodeGroups": [],
+  "id": "W4AR44koRTrEtx53",
+  "tags": []
+}
