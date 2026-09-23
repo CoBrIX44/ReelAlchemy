@@ -2,6 +2,7 @@ const { chromium } = require("playwright");
 const path = require("path");
 const fs = require("fs");
 
+const projectRoot = path.resolve(__dirname, "..");
 const username = "winmini_kitchen_bangalore";
 
 const captionFile = process.argv[2];
@@ -51,8 +52,10 @@ if (!newCaption) {
 
         browser =
             await chromium.launchPersistentContext(
-                path.resolve(
-                    "F:\\instagram-automation\\browser\\instagram-profile"
+                path.join(
+                    projectRoot,
+                    "browser",
+                    "instagram-profile"
                 ),
                 {
                     headless: false,
@@ -351,7 +354,7 @@ if (!newCaption) {
 
             await page.screenshot({
                 path:
-                    "F:\\instagram-automation\\logs\\reel-options-debug.png",
+                    path.join(projectRoot, "logs", "reel-options-debug.png"),
                 fullPage: true
             });
 
@@ -561,7 +564,7 @@ if (!newCaption) {
                         "caption"
                     ) ||
                     text ===
-                        "add a caption..."
+                    "add a caption..."
                 ) {
 
                     captionField =
@@ -641,7 +644,7 @@ if (!newCaption) {
 
             await page.screenshot({
                 path:
-                    "F:\\instagram-automation\\logs\\caption-field-debug.png",
+                    path.join(projectRoot, "logs", "caption-field-debug.png"),
                 fullPage: true
             });
 
@@ -785,7 +788,7 @@ if (!newCaption) {
 
             await page.screenshot({
                 path:
-                    "F:\\instagram-automation\\logs\\caption-before-save-failed.png",
+                    path.join(projectRoot, "logs", "caption-before-save-failed.png"),
                 fullPage: true
             });
 
@@ -810,7 +813,7 @@ if (!newCaption) {
 
             await page.screenshot({
                 path:
-                    "F:\\instagram-automation\\logs\\caption-edit-preview.png",
+                    path.join(projectRoot, "logs", "caption-edit-preview.png"),
                 fullPage: true
             });
 
@@ -837,7 +840,7 @@ if (!newCaption) {
             );
 
             await new Promise(
-                () => {}
+                () => { }
             );
 
             return;
@@ -1038,7 +1041,7 @@ if (!newCaption) {
 
             await page.screenshot({
                 path:
-                    "F:\\instagram-automation\\logs\\caption-save-page-check.png",
+                    path.join(projectRoot, "logs", "caption-save-page-check.png"),
                 fullPage: true
             });
 
@@ -1081,7 +1084,7 @@ if (!newCaption) {
         );
 
         if (browser) {
-            await browser.close().catch(() => {});
+            await browser.close().catch(() => { });
         }
 
         console.log(
@@ -1121,11 +1124,11 @@ if (!newCaption) {
                 await pages[0]
                     .screenshot({
                         path:
-                            "F:\\instagram-automation\\logs\\caption-edit-error.png",
+                            path.join(projectRoot, "logs", "caption-edit-error.png"),
                         fullPage: true
                     })
                     .catch(
-                        () => {}
+                        () => { }
                     );
             }
         }

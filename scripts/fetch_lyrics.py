@@ -3,6 +3,9 @@ import json
 import subprocess
 import os
 import re
+project_root = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
 
 # Force UTF-8 output on Windows so Tamil lyrics can be printed safely.
 if hasattr(sys.stdout, "reconfigure"):
@@ -34,7 +37,11 @@ print(f"Finding lyrics for: {title}")
 # Uses the existing working find-lyrics.js
 # ---------------------------------------------------------
 
-finder_path = r"F:\instagram-automation\browser\find-lyrics.js"
+finder_path = os.path.join(
+    project_root,
+    "browser",
+    "find-lyrics.js"
+)
 
 try:
     finder = subprocess.run(
@@ -233,8 +240,8 @@ for line in reversed(browser_output.splitlines()):
 
 if not page_result:
     error_message = (
-        browser_result
-        or browser_result.stderr
+        browser_result.stderr.strip()
+        or browser_result.stdout.strip()
         or "Unknown browser error."
     )
 
