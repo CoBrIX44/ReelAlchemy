@@ -153,9 +153,14 @@ const path = require("path");
 
         const video = page.locator("video").first();
 
-        if (await video.count() === 0) {
+        try {
+            await video.waitFor({
+                state: "attached",
+                timeout: 20000
+            });
+        } catch (error) {
             throw new Error(
-                "Instagram video element was not found."
+                "Instagram video element was not found within 20 seconds."
             );
         }
 
