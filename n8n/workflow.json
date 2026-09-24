@@ -82,7 +82,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:11434/api/chat",
+        "url": "http://127.0.0.1:11434/api/chat",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ $json }}",
@@ -162,7 +162,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const musicText = String($json.music_text || \"\").trim();\n\nif (!musicText) {\n  throw new Error(\"Instagram music information is missing.\");\n}\n\n// Instagram normally formats this as:\n// Artist • Song Title\n//\n// Use the LAST bullet so multiple artists are preserved.\nconst separator = \"•\";\nconst separatorIndex = musicText.lastIndexOf(separator);\n\nif (separatorIndex === -1) {\n  throw new Error(\n    `Could not separate artist and title from Instagram music: ${musicText}`\n  );\n}\n\nconst artist = musicText\n  .slice(0, separatorIndex)\n  .trim();\n\nconst title = musicText\n  .slice(separatorIndex + separator.length)\n  .trim();\n\nif (!artist || !title) {\n  throw new Error(\n    `Invalid Instagram music information: ${musicText}`\n  );\n}\n\nreturn {\n  json: {\n    ...$json,\n\n    song: {\n      artist,\n      title\n    },\n\n    song_source: \"instagram\"\n  }\n};"
+        "jsCode": "const musicText = String($json.music_text || \"\").trim();\n\nif (!musicText) {\n  throw new Error(\"Instagram music information is missing.\");\n}\n\n// Instagram normally formats this as:\n// Artist â€¢ Song Title\n//\n// Use the LAST bullet so multiple artists are preserved.\nconst separator = \"â€¢\";\nconst separatorIndex = musicText.lastIndexOf(separator);\n\nif (separatorIndex === -1) {\n  throw new Error(\n    `Could not separate artist and title from Instagram music: ${musicText}`\n  );\n}\n\nconst artist = musicText\n  .slice(0, separatorIndex)\n  .trim();\n\nconst title = musicText\n  .slice(separatorIndex + separator.length)\n  .trim();\n\nif (!artist || !title) {\n  throw new Error(\n    `Invalid Instagram music information: ${musicText}`\n  );\n}\n\nreturn {\n  json: {\n    ...$json,\n\n    song: {\n      artist,\n      title\n    },\n\n    song_source: \"instagram\"\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -199,10 +199,88 @@
       ],
       "id": "1e6c2e28-c4ac-4883-9a2f-4e4ff5f8639c",
       "name": "Parse Shazam Result"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const content = String(\n  $json.message?.content || \"\"\n).trim();\n\nif (!content) {\n  throw new Error(\"Ollama returned empty content.\");\n}\n\n// Remove Markdown code fences if Ollama wrapped the JSON in ```json ... ```\nconst cleaned = content\n  .replace(/^```json\\s*/i, \"\")\n  .replace(/^```\\s*/i, \"\")\n  .replace(/\\s*```$/i, \"\")\n  .trim();\n\nlet result;\n\ntry {\n  result = JSON.parse(cleaned);\n} catch (error) {\n  throw new Error(\n    `Could not parse Ollama JSON: ${error.message}\\n\\nOllama response:\\n${content}`\n  );\n}\n\nif (!result.caption) {\n  throw new Error(\"Ollama response is missing caption.\");\n}\n\nif (!Array.isArray(result.hashtags)) {\n  throw new Error(\"Ollama response is missing hashtags array.\");\n}\n\n// Clean hashtags:\n// \"#AR Rahman\" â†’ \"#ARRahman\"\n// Remove whitespace and keep only actual hashtags.\nconst hashtags = result.hashtags\n  .map(tag => String(tag).trim())\n  .map(tag => tag.replace(/\\s+/g, \"\"))\n  .filter(tag => tag.startsWith(\"#\"));\n\nif (hashtags.length === 0) {\n  throw new Error(\"Ollama returned no valid hashtags.\");\n}\n\nconst caption = String(result.caption).trim();\n\nreturn {\n  json: {\n    caption,\n    hashtags,\n\n    full_caption:\n      caption +\n      \"\\n\\n\" +\n      hashtags.join(\" \")\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2848,
+        0
+      ],
+      "id": "e73fd3f3-f024-49d4-b636-384b1d946033",
+      "name": "Parse Ollama Response"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const ollama = $json;\n\nconst lyrics = $('Parse Lyrics').item.json;\nconst reel = $('Parse Reel Result').item.json;\n\nconst caption = String(ollama.caption || \"\").trim();\n\nconst hashtags = Array.isArray(ollama.hashtags)\n  ? ollama.hashtags.map(tag => String(tag).trim()).filter(Boolean)\n  : [];\n\nconst fullCaption = String(\n  ollama.full_caption ||\n  (\n    caption +\n    \"\\n\\n\" +\n    hashtags.join(\" \")\n  )\n).trim();\n\nconst artist = String(\n  lyrics.song?.artist || \"\"\n).trim();\n\nconst title = String(\n  lyrics.song?.title || \"\"\n).trim();\n\nconst lyric = String(\n  lyrics.random_snippet || \"\"\n).trim();\n\nif (!caption) {\n  throw new Error(\"Final caption is missing.\");\n}\n\nif (!artist) {\n  throw new Error(\"Artist is missing.\");\n}\n\nif (!title) {\n  throw new Error(\"Song title is missing.\");\n}\n\nif (!lyric) {\n  throw new Error(\"Random lyric snippet is missing.\");\n}\n\nif (!reel.reel_url) {\n  throw new Error(\"Reel URL is missing.\");\n}\n\nreturn {\n  json: {\n    ready_to_post: true,\n\n    reel: {\n      url: reel.reel_url,\n      media_path: reel.media_path || \"\"\n    },\n\n    song: {\n      title,\n      artist,\n      source: lyrics.song_source || null\n    },\n\n    lyrics: {\n      snippet: lyric,\n      source: lyrics.lyrics_source || \"\",\n      url: lyrics.lyrics_url || \"\"\n    },\n\n    caption,\n\n    hashtags,\n\n    full_caption: fullCaption,\n\n    edit_caption: fullCaption\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3072,
+        0
+      ],
+      "id": "7cdc5b3a-6a11-42a3-9eda-1e5e0e5f4e13",
+      "name": "Prepare Instagram Post"
+    },
+    {
+      "parameters": {
+        "command": "cd /d F:\\ReelAlchemy && node .\\browser\\edit-reel-caption.js \"F:\\ReelAlchemy\\output\\instagram-caption.txt\" save"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3728,
+        0
+      ],
+      "id": "9deea471-4af7-455d-ab21-ec49b21f9273",
+      "name": "Edit Existing Reel Caption"
+    },
+    {
+      "parameters": {
+        "command": "=powershell -NoProfile -Command \"[IO.File]::WriteAllBytes('F:\\ReelAlchemy\\output\\instagram-caption.txt',[Convert]::FromBase64String('{{$json.caption_base64}}'))\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3520,
+        0
+      ],
+      "id": "4c842386-ff8d-4959-9b84-297d25f34bbe",
+      "name": "Write Caption File"
+    },
+    {
+      "parameters": {
+        "jsCode": "const caption = String(\n  $json.full_caption || \"\"\n);\n\nif (!caption.trim()) {\n  throw new Error(\"full_caption is empty.\");\n}\n\nreturn {\n  json: {\n    ...$json,\n\n    caption_base64:\n      Buffer\n        .from(caption, \"utf8\")\n        .toString(\"base64\")\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3296,
+        0
+      ],
+      "id": "1c91724b-3c68-4bd9-98b1-0c5ecfb63e19",
+      "name": "Encode Caption"
     }
   ],
   "pinData": {},
   "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Downloads the Reel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Downloads the Reel": {
       "main": [
         [
@@ -331,11 +409,55 @@
         ]
       ]
     },
-    "When clicking ‘Execute workflow’": {
+    "Ollama Caption Generator": {
       "main": [
         [
           {
-            "node": "Downloads the Reel",
+            "node": "Parse Ollama Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Ollama Response": {
+      "main": [
+        [
+          {
+            "node": "Prepare Instagram Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Instagram Post": {
+      "main": [
+        [
+          {
+            "node": "Encode Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Caption File": {
+      "main": [
+        [
+          {
+            "node": "Edit Existing Reel Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encode Caption": {
+      "main": [
+        [
+          {
+            "node": "Write Caption File",
             "type": "main",
             "index": 0
           }
@@ -348,7 +470,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "e01b9b93-2e5f-486a-b4d9-5f45f968ffdb",
+  "versionId": "dca657c5-4c57-4a01-bc08-46ee0df8cafb",
   "meta": {
     "instanceId": "aec62e872c8b6f67ee1e407946b5e9cd1b233e9d94b2ba4b81aadd0496b5e179"
   },
@@ -356,3 +478,5 @@
   "id": "W4AR44koRTrEtx53",
   "tags": []
 }
+
+
