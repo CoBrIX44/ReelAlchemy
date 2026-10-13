@@ -8,6 +8,12 @@ The project combines browser automation, media processing, song recognition, lyr
 
 ---
 
+## 🎬 Demo
+
+<video src="brag-output/brag.mp4" controls width="100%" poster="brag-output/brag.jpg"></video>
+
+---
+
 ## ✨ Features
 
 - Automatically discovers Reels from your own Instagram profile
