@@ -10,6 +10,8 @@ The project combines browser automation, media processing, song recognition, lyr
 
 ## 🎬 Demo
 
+[![ReelAlchemy Demo](brag-output/brag.gif)](brag-output/brag.mp4)
+
 <video src="brag-output/brag.mp4" controls width="100%" poster="brag-output/brag.jpg"></video>
 
 ---
