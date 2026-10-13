@@ -1,0 +1,5 @@
+You post a Reel with zero caption. 45 seconds later, ReelAlchemy recognizes the song, fetches poetic Tamil lyrics, prompts a local Ollama LLM, and stealthily edits the live Instagram Reel in-place.
+
+100% autonomous, 100% private, and runs entirely on your own machine with n8n, Playwright, and FFmpeg.
+
+https://github.com/CoBrIX44/ReelAlchemy

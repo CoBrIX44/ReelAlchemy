@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ReelAlchemy Launch</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: #06080F;
+    color: #F8FAFC;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    position: relative;
+    user-select: none;
+  }
+
+  /* Ambient glowing backdrop */
+  .bg-glow {
+    position: absolute;
+    width: 900px;
+    height: 900px;
+    border-radius: 50%;
+    filter: blur(140px);
+    opacity: 0.22;
+    pointer-events: none;
+  }
+  .bg-glow-1 { top: -200px; left: -100px; background: #833AB4; }
+  .bg-glow-2 { bottom: -200px; right: -100px; background: #FD1D1D; }
+  .bg-glow-3 { top: 300px; left: 550px; background: #06B6D4; opacity: 0.15; }
+
+  /* Subtle background grid */
+  .grid-pattern {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.8;
+    pointer-events: none;
+  }
+
+  /* Header Top Bar */
+  .top-bar {
+    position: absolute;
+    top: 40px;
+    left: 80px;
+    right: 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 50;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 25px rgba(253, 29, 29, 0.4);
+  }
+  .brand-name {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #FFFFFF;
+  }
+  .brand-tag {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #94A3B8;
+  }
+
+  /* Pipeline Bar */
+  .pipeline-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 8px 18px;
+    border-radius: 999px;
+  }
+  .node-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #64748B;
+  }
+  .node-pill.active {
+    background: rgba(6, 182, 212, 0.2);
+    border-color: #06B6D4;
+    color: #22D3EE;
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.35);
+  }
+  .node-pill.amber {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: #F59E0B;
+    color: #FBBF24;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.35);
+  }
+  .node-pill.done {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.5);
+    color: #34D399;
+  }
+
+  /* Scene Layouts */
+  .scene-container {
+    position: absolute;
+    top: 120px;
+    left: 80px;
+    right: 80px;
+    bottom: 50px;
+  }
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: none;
+    opacity: 1;
+  }
+
+  /* Phone Mockup Frame */
+  .phone-mockup {
+    width: 380px;
+    height: 760px;
+    border-radius: 50px;
+    background: #000;
+    border: 10px solid #1E293B;
+    box-shadow: 
+      0 0 0 2px rgba(255,255,255,0.15),
+      0 30px 70px -15px rgba(0,0,0,0.95),
+      0 0 50px rgba(131, 58, 180, 0.25);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .phone-island {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 28px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 40;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #020617;
+  }
+  .phone-video-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .phone-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 45%, rgba(0,0,0,0.5) 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 50px 20px 26px 20px;
+    z-index: 20;
+  }
+  .phone-reel-actions {
+    position: absolute;
+    right: 14px;
+    bottom: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    align-items: center;
+    color: white;
+  }
+  .action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .action-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .phone-caption-box {
+    color: white;
+    width: 80%;
+  }
+  .phone-user {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .phone-caption-text {
+    font-size: 13px;
+    line-height: 1.4;
+    color: #E2E8F0;
+  }
+  .phone-music-badge {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(8px);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  /* Glass Card */
+  .glass-card {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(24px);
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  }
+
+  /* Terminal Window */
+  .terminal-card {
+    background: #090D16;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.7);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .terminal-header {
+    background: #111726;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #EF4444; }
+  .dot-y { background: #F59E0B; }
+  .dot-g { background: #10B981; }
+  .terminal-title {
+    font-size: 13px;
+    color: #94A3B8;
+    margin-left: 12px;
+  }
+  .terminal-body {
+    padding: 26px;
+    font-size: 15px;
+    line-height: 1.85;
+  }
+
+  /* Waveform Visualizer */
+  .waveform-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 130px;
+    padding: 0 10px;
+  }
+  .wave-bar {
+    flex: 1;
+    background: linear-gradient(to top, #06B6D4, #3B82F6);
+    border-radius: 4px;
+    min-height: 6px;
+  }
+
+  /* Gradients */
+  .gradient-text-hero {
+    background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 60%, #94A3B8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .gradient-text-insta {
+    background: linear-gradient(135deg, #FD1D1D 0%, #F56040 50%, #FCAF45 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .gradient-text-cyan {
+    background: linear-gradient(135deg, #22D3EE 0%, #3B82F6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .gradient-text-amber {
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Ambient Light Fields -->
+  <div class="bg-glow bg-glow-1" id="glow1"></div>
+  <div class="bg-glow bg-glow-2" id="glow2"></div>
+  <div class="bg-glow bg-glow-3" id="glow3"></div>
+  <div class="grid-pattern"></div>
+
+  <!-- Header -->
+  <div class="top-bar">
+    <div class="brand">
+      <div class="brand-logo">✨</div>
+      <div class="brand-name">ReelAlchemy</div>
+      <div class="brand-tag">Autonomous Pipeline</div>
+    </div>
+    <div class="pipeline-bar" id="pipelineBar">
+      <div class="node-pill" id="node1"><span>●</span> Instagram Scan</div>
+      <div class="node-pill" id="node2"><span>●</span> Audio Extraction</div>
+      <div class="node-pill" id="node3"><span>●</span> ShazamIO Radar</div>
+      <div class="node-pill" id="node4"><span>●</span> Tamil2Lyrics</div>
+      <div class="node-pill" id="node5"><span>●</span> Ollama LLM</div>
+      <div class="node-pill" id="node6"><span>●</span> In-Place Edit</div>
+    </div>
+  </div>
+
+  <div class="scene-container">
+
+    <!-- ========================================================
+         SCENE 1: THE HOOK (0.0s - 3.5s)
+         ======================================================== -->
+    <div class="scene" id="scene1" style="align-items:center; justify-content:space-between; gap:70px;">
+      
+      <!-- Left: Floating Phone -->
+      <div class="phone-mockup" id="phone1">
+        <div class="phone-island"></div>
+        <div class="phone-screen">
+          <img id="reelImg1" class="phone-video-img" src="reel_frames/f_010.jpg" alt="reel">
+          <div class="phone-overlay">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:700; font-size:13px;">Reels</span>
+              <span>📷</span>
+            </div>
+            <div class="phone-reel-actions">
+              <div class="action-btn"><div class="action-icon">❤️</div><span>14.2K</span></div>
+              <div class="action-btn"><div class="action-icon">💬</div><span>384</span></div>
+              <div class="action-btn"><div class="action-icon">✈️</div><span>Share</span></div>
+            </div>
+            <div class="phone-caption-box">
+              <div class="phone-user">@winmini_kitchen <span style="font-size:11px; color:#38BDF8;">✓</span></div>
+              <div class="phone-caption-text" id="phone1Caption" style="color:#CBD5E1; font-style:italic; background:rgba(0,0,0,0.6); padding:6px 10px; border-radius:6px; border:1px dashed #64748B;">
+                [Caption empty...]
+              </div>
+              <div class="phone-music-badge">
+                <span>🎵</span> <span>Original Audio</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Problem Pitch -->
+      <div style="flex:1; max-width:920px;">
+        <div style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); border-radius:999px; color:#F87171; font-weight:700; font-size:14px; margin-bottom:28px;" id="s1Badge">
+          <span>⚠️</span> THE CREATOR'S DILEMMA
+        </div>
+        <h1 style="font-size:72px; font-weight:900; line-height:1.08; letter-spacing:-1.5px; margin-bottom:24px; color:#FFFFFF;">
+          You just posted a Reel.<br>
+          <span class="gradient-text-insta">Zero caption ideas.</span>
+        </h1>
+        <p style="font-size:24px; color:#94A3B8; line-height:1.5; margin-bottom:38px; max-width:800px;">
+          The video looks cinematic. The music hits deep. But writing evocative, poetic captions every single day is exhausting.
+        </p>
+
+        <!-- Status Card -->
+        <div class="glass-card" style="padding:26px 32px; display:flex; align-items:center; justify-content:space-between; border-left:5px solid #06B6D4;">
+          <div>
+            <div style="font-size:13px; color:#64748B; font-weight:700; text-transform:uppercase; letter-spacing:0.8px;">Background Daemon</div>
+            <div style="font-size:20px; font-weight:700; color:#F1F5F9; margin-top:4px;" id="s1Status">
+              Scanning user profile for new uploads...
+            </div>
+          </div>
+          <div style="width:14px; height:14px; border-radius:50%; background:#06B6D4; box-shadow:0 0 16px #06B6D4;" id="s1Pulse"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================
+         SCENE 2: AUDIO EXTRACTION & SHAZAM (3.5s - 7.5s)
+         ======================================================== -->
+    <div class="scene" id="scene2" style="flex-direction:column; justify-content:center;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:34px;">
+        <div>
+          <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 16px; background:rgba(6,182,212,0.15); border:1px solid rgba(6,182,212,0.4); border-radius:999px; color:#22D3EE; font-weight:700; font-size:14px; margin-bottom:14px;">
+            <span>⚡</span> STEP 1 & 2: REEL DETECTION & ACOUSTIC RADAR
+          </div>
+          <h2 style="font-size:54px; font-weight:900; letter-spacing:-1px; color:#FFFFFF;">
+            Autonomous Rip & <span class="gradient-text-cyan">Acoustic Identification</span>
+          </h2>
+        </div>
+        <div style="font-size:16px; color:#94A3B8; font-weight:600;">
+          Latency: <span style="color:#22D3EE; font-weight:800;">1.4s</span> • Zero Cloud APIs
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1.15fr 1fr; gap:40px;">
+        
+        <!-- Terminal -->
+        <div class="terminal-card">
+          <div class="terminal-header">
+            <div class="dot dot-r"></div>
+            <div class="dot dot-y"></div>
+            <div class="dot dot-g"></div>
+            <div class="terminal-title">bash — reelalchemy pipeline [running]</div>
+          </div>
+          <div class="terminal-body" id="termLogs2">
+            <div style="color:#64748B;">// Headless Playwright Persistent Session</div>
+            <div><span style="color:#06B6D4;">playwright$</span> open-my-latest-reel.js --profile=instagram-profile</div>
+            <div style="color:#10B981;">[✓] Found latest Reel: /reel/C8xk09mPq1a</div>
+            <div style="margin-top:6px;"><span style="color:#F59E0B;">ffmpeg$</span> -i stream.mp4 -vn -ar 44100 -ac 1 audio/reel.wav</div>
+            <div style="color:#10B981;">[✓] Extracted 44.1kHz PCM stream (56.36s)</div>
+            <div style="margin-top:8px;"><span style="color:#A855F7;">shazamio$</span> analyze_fingerprint(audio/reel.wav)</div>
+            <div style="color:#38BDF8;" id="shazamLog">> Matching acoustic signature against 100M+ tracks...</div>
+            <div style="color:#10B981; font-weight:700; margin-top:4px;" id="shazamMatch">> MATCH LOCKED: Ilaiyaraaja • SPB (Naan Paadum Moona)</div>
+          </div>
+        </div>
+
+        <!-- Waveform & Radar Card -->
+        <div class="glass-card" style="padding:34px; display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+              <div style="font-size:14px; color:#94A3B8; font-weight:700;">AUDIO SPECTRUM (FFmpeg 16-bit PCM)</div>
+              <div style="font-size:12px; color:#06B6D4; background:rgba(6,182,212,0.15); padding:4px 12px; border-radius:6px; font-weight:700;">44,100 Hz MONO</div>
+            </div>
+            <!-- Waveform visualizer container -->
+            <div class="waveform-container" id="waveformBars"></div>
+          </div>
+
+          <!-- Radar Match Banner -->
+          <div style="background:rgba(2, 6, 23, 0.85); border:1px solid rgba(6, 182, 212, 0.4); border-radius:18px; padding:22px; display:flex; align-items:center; gap:20px;">
+            <div style="width:56px; height:56px; border-radius:16px; background:linear-gradient(135deg, #06B6D4, #3B82F6); display:flex; align-items:center; justify-content:center; font-size:28px;">
+              🎵
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:12px; color:#06B6D4; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Song Identified</div>
+              <div style="font-size:22px; font-weight:800; color:#FFFFFF;">Naan Paadum Moona</div>
+              <div style="font-size:14px; color:#94A3B8; margin-top:2px;">Composer: Ilaiyaraaja • Vocals: S.P. Balasubrahmanyam</div>
+            </div>
+            <div style="font-size:26px; color:#10B981; font-weight:900;">✓</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================
+         SCENE 3: TAMIL LYRICS & OLLAMA LLM (7.5s - 12.0s)
+         ======================================================== -->
+    <div class="scene" id="scene3" style="flex-direction:column; justify-content:center;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:34px;">
+        <div>
+          <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 16px; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.4); border-radius:999px; color:#FBBF24; font-weight:700; font-size:14px; margin-bottom:14px;">
+            <span>🧠</span> STEP 3 & 4: LYRIC EXTRACTION & LOCAL OLLAMA
+          </div>
+          <h2 style="font-size:54px; font-weight:900; letter-spacing:-1px; color:#FFFFFF;">
+            Poetic Lyrics into <span class="gradient-text-amber">Local AI Stories</span>
+          </h2>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.4); padding:8px 18px; border-radius:999px; color:#34D399; font-weight:700; font-size:14px;">
+          <span>🔒</span> 100% On-Device • Zero Cloud API Costs
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1.35fr; gap:40px;">
+        
+        <!-- Lyric Extraction Card -->
+        <div class="glass-card" style="padding:34px; display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div style="font-size:13px; color:#F59E0B; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:10px;">
+              Tamil2Lyrics Engine
+            </div>
+            <div style="font-size:14px; color:#94A3B8; margin-bottom:24px;">
+              Script: <code>scripts/fetch_lyrics.py</code>
+            </div>
+
+            <div style="background:rgba(2,6,23,0.85); border:1px solid rgba(245,158,11,0.3); border-radius:20px; padding:30px 26px; position:relative;">
+              <div style="font-size:12px; color:#F59E0B; font-weight:800; margin-bottom:10px;">EXTRACTED SNIPPET:</div>
+              <div style="font-size:42px; font-weight:900; color:#FFFFFF; line-height:1.2;">
+                சொல்கிறாய்...
+              </div>
+              <div style="font-size:15px; color:#94A3B8; margin-top:14px; line-height:1.5;">
+                "You speak words that echo through melodic memories..."
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:14px; margin-top:20px;">
+            <div style="flex:1; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:14px; border-radius:14px; font-size:13px;">
+              <span style="color:#64748B;">Language:</span> <b style="color:#F8FAFC; margin-left:4px;">Tamil (தமிழ்)</b>
+            </div>
+            <div style="flex:1; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:14px; border-radius:14px; font-size:13px;">
+              <span style="color:#64748B;">Mood:</span> <b style="color:#F8FAFC; margin-left:4px;">Nostalgic Classic</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ollama Synthesis Terminal -->
+        <div class="terminal-card">
+          <div class="terminal-header">
+            <div class="dot dot-r"></div>
+            <div class="dot dot-y"></div>
+            <div class="dot dot-g"></div>
+            <div class="terminal-title">ollama runner — mistral / llama3 [local inference]</div>
+          </div>
+          <div class="terminal-body">
+            <div style="color:#64748B;">// Local LLM Caption Generation Prompt</div>
+            <div style="color:#F59E0B;">system > You are an evocative storyteller for Instagram Reels.</div>
+            <div style="color:#94A3B8;">user > Song: Naan Paadum Moona. Lyric snippet: "சொல்கிறாய்". Craft caption + tags.</div>
+            
+            <div style="margin-top:20px; padding:20px; background:rgba(255,255,255,0.04); border-radius:14px; border-left:4px solid #10B981;">
+              <div style="color:#10B981; font-weight:800; font-size:12px; margin-bottom:8px;">SYNTHESIZED CAPTION:</div>
+              <div style="font-size:19px; font-weight:600; color:#FFFFFF; line-height:1.55;" id="ollamaTyping">
+                Some moments don't need an explanation — the music says everything. ✨
+              </div>
+              <div style="font-size:14px; color:#38BDF8; margin-top:14px; line-height:1.4;" id="ollamaTags">
+                #ilaiyaraaja #spbalasubrahmanyam #naanpaadummoona #tamilmusic #classicmusic
+              </div>
+            </div>
+            
+            <div style="margin-top:18px; display:flex; justify-content:space-between; align-items:center; font-size:13px; color:#64748B;">
+              <div>Target: <code>output/instagram-caption.txt</code></div>
+              <div style="color:#10B981; font-weight:700;">[✓] Local Inference Finished (840ms)</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================
+         SCENE 4: PLAYWRIGHT LIVE IN-PLACE EDIT (12.0s - 16.5s)
+         ======================================================== -->
+    <div class="scene" id="scene4" style="align-items:center; justify-content:space-between; gap:70px;">
+      
+      <!-- Left: Story Details -->
+      <div style="flex:1; max-width:920px;">
+        <div style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); border-radius:999px; color:#34D399; font-weight:700; font-size:14px; margin-bottom:28px;">
+          <span>🔄</span> STEP 5: STEALTH LIVE REEL UPDATE
+        </div>
+        <h1 style="font-size:68px; font-weight:900; line-height:1.1; letter-spacing:-1.5px; margin-bottom:24px; color:#FFFFFF;">
+          Playwright Updates the<br>
+          <span style="background:linear-gradient(135deg, #10B981, #06B6D4); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Existing Live Reel.</span>
+        </h1>
+        <p style="font-size:24px; color:#94A3B8; line-height:1.5; margin-bottom:38px;">
+          No reposting. No deleting. Playwright attaches to your persistent Chromium session, opens the Reel options, and writes the new caption in-place.
+        </p>
+
+        <!-- Live Status Pill -->
+        <div class="glass-card" style="padding:26px 32px; display:flex; align-items:center; gap:24px; border:1px solid rgba(16,185,129,0.4); background:rgba(6, 78, 59, 0.2);">
+          <div style="width:52px; height:52px; border-radius:50%; background:#10B981; display:flex; align-items:center; justify-content:center; font-size:26px; color:white; box-shadow:0 0 25px rgba(16,185,129,0.7); flex-shrink:0;" id="s4Check">
+            ✓
+          </div>
+          <div>
+            <div style="font-size:20px; font-weight:800; color:#FFFFFF;" id="s4StatusTitle">Caption Saved & Live on Instagram</div>
+            <div style="font-size:15px; color:#A7F3D0; margin-top:4px;">Post ID: /reel/C8xk09mPq1a • Edited Just Now</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Phone with Live Updated Caption -->
+      <div class="phone-mockup" id="phone4">
+        <div class="phone-island"></div>
+        <div class="phone-screen">
+          <img id="reelImg4" class="phone-video-img" src="reel_frames/f_030.jpg" alt="reel">
+          <div class="phone-overlay">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:700; font-size:13px;">Reels</span>
+              <span style="background:rgba(16,185,129,0.4); border:1px solid #10B981; color:#A7F3D0; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:800;">EDITED</span>
+            </div>
+            <div class="phone-reel-actions">
+              <div class="action-btn"><div class="action-icon">❤️</div><span>14.2K</span></div>
+              <div class="action-btn"><div class="action-icon">💬</div><span>384</span></div>
+              <div class="action-btn"><div class="action-icon">✈️</div><span>Share</span></div>
+            </div>
+            <div class="phone-caption-box">
+              <div class="phone-user">@winmini_kitchen <span style="font-size:11px; color:#38BDF8;">✓</span></div>
+              <div class="phone-caption-text" id="phone4Caption" style="color:#FFFFFF; font-weight:500; background:rgba(0,0,0,0.7); padding:8px 12px; border-radius:8px;">
+                Some moments don't need an explanation — the music says everything. ✨<br><br>
+                <span style="color:#93C5FD; font-size:11px;">#ilaiyaraaja #spbalasubrahmanyam #tamilmusic</span>
+              </div>
+              <div class="phone-music-badge">
+                <span>🎵</span> <span>Naan Paadum Moona • Ilaiyaraaja</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================
+         SCENE 5: OUTRO & HERO BRANDING (16.5s - 20.0s)
+         ======================================================== -->
+    <div class="scene" id="scene5" style="flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+      
+      <!-- Hero Brand Badge -->
+      <div style="width:100px; height:100px; border-radius:30px; background:linear-gradient(135deg, #833AB4, #FD1D1D, #FCB045); display:flex; align-items:center; justify-content:center; font-size:52px; box-shadow:0 0 60px rgba(253, 29, 29, 0.6); margin-bottom:28px;" id="heroLogo">
+        ✨
+      </div>
+
+      <h1 style="font-size:92px; font-weight:900; letter-spacing:-2.5px; line-height:1.05; margin-bottom:16px;">
+        <span class="gradient-text-hero">Reel</span><span class="gradient-text-insta">Alchemy</span>
+      </h1>
+
+      <div style="font-size:34px; font-weight:600; color:#94A3B8; margin-bottom:46px; letter-spacing:-0.5px;">
+        Turn Reels into Stories.
+      </div>
+
+      <!-- Tech Stack Pill Row -->
+      <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-bottom:52px;">
+        <div class="glass-card" style="padding:14px 26px; font-size:16px; font-weight:700; color:#E2E8F0; display:flex; align-items:center; gap:10px;">
+          <span style="color:#06B6D4;">⚡</span> n8n Workflow
+        </div>
+        <div class="glass-card" style="padding:14px 26px; font-size:16px; font-weight:700; color:#E2E8F0; display:flex; align-items:center; gap:10px;">
+          <span style="color:#38BDF8;">🎭</span> Playwright Engine
+        </div>
+        <div class="glass-card" style="padding:14px 26px; font-size:16px; font-weight:700; color:#E2E8F0; display:flex; align-items:center; gap:10px;">
+          <span style="color:#F59E0B;">🧠</span> Local Ollama AI
+        </div>
+        <div class="glass-card" style="padding:14px 26px; font-size:16px; font-weight:700; color:#E2E8F0; display:flex; align-items:center; gap:10px;">
+          <span style="color:#EC4899;">📻</span> ShazamIO Fallback
+        </div>
+        <div class="glass-card" style="padding:14px 26px; font-size:16px; font-weight:700; color:#E2E8F0; display:flex; align-items:center; gap:10px;">
+          <span style="color:#10B981;">🎬</span> FFmpeg Audio
+        </div>
+      </div>
+
+      <!-- GitHub Clone Box -->
+      <div style="background:#090D16; border:1px solid rgba(255,255,255,0.15); border-radius:20px; padding:20px 40px; display:inline-flex; align-items:center; gap:20px; font-family:'JetBrains Mono', monospace; font-size:20px; box-shadow:0 25px 50px rgba(0,0,0,0.7);">
+        <span style="color:#64748B;">$</span>
+        <span style="color:#F8FAFC;">git clone https://github.com/CoBrIX44/ReelAlchemy</span>
+        <span style="background:rgba(255,255,255,0.1); padding:6px 14px; border-radius:8px; font-size:14px; color:#38BDF8; font-weight:700;">open source</span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- JavaScript Frame Controller -->
+  <script>
+    const waveformData = [
+      0.15, 0.32, 0.48, 0.65, 0.82, 0.94, 0.88, 0.70, 0.45, 0.35, 0.60, 0.76,
+      0.92, 0.98, 0.80, 0.62, 0.45, 0.72, 0.92, 0.96, 0.75, 0.58, 0.42, 0.65,
+      0.86, 0.99, 0.89, 0.68, 0.52, 0.75, 0.92, 0.95, 0.82, 0.56, 0.38, 0.67,
+      0.88, 0.99, 0.84, 0.65, 0.48, 0.77, 0.94, 0.89, 0.72, 0.52, 0.36, 0.62
+    ];
+
+    const waveContainer = document.getElementById('waveformBars');
+    for (let i = 0; i < 48; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'wave-bar';
+      bar.id = 'wb_' + i;
+      waveContainer.appendChild(bar);
+    }
+
+    const reelFrameCount = 60;
+
+    // Pure deterministic time-based frame renderer
+    window.renderFrame = function(t) {
+      const s1 = document.getElementById('scene1');
+      const s2 = document.getElementById('scene2');
+      const s3 = document.getElementById('scene3');
+      const s4 = document.getElementById('scene4');
+      const s5 = document.getElementById('scene5');
+
+      const scenes = [
+        { el: s1, start: 0.0, end: 3.5 },
+        { el: s2, start: 3.5, end: 7.5 },
+        { el: s3, start: 7.5, end: 12.0 },
+        { el: s4, start: 12.0, end: 16.5 },
+        { el: s5, start: 16.5, end: 20.0 }
+      ];
+
+      scenes.forEach(sc => {
+        if (t >= sc.start && t < sc.end) {
+          sc.el.style.display = 'flex';
+          // Smooth dip fade near transition boundaries
+          const localT = t - sc.start;
+          const remT = sc.end - t;
+          let op = 1.0;
+          if (localT < 0.15) op = localT / 0.15;
+          if (remT < 0.15) op = remT / 0.15;
+          sc.el.style.opacity = op;
+        } else {
+          sc.el.style.display = 'none';
+          sc.el.style.opacity = '0';
+        }
+      });
+
+      // Update Pipeline Pills
+      const n1 = document.getElementById('node1');
+      const n2 = document.getElementById('node2');
+      const n3 = document.getElementById('node3');
+      const n4 = document.getElementById('node4');
+      const n5 = document.getElementById('node5');
+      const n6 = document.getElementById('node6');
+
+      [n1,n2,n3,n4,n5,n6].forEach(n => { n.className = 'node-pill'; });
+
+      const frameIdx = Math.floor((t * 15) % reelFrameCount) + 1;
+      const padIdx = String(frameIdx).padStart(3, '0');
+      const frameSrc = `reel_frames/f_${padIdx}.jpg`;
+
+      const g1 = document.getElementById('glow1');
+      const g2 = document.getElementById('glow2');
+
+      if (t < 3.5) {
+        n1.className = 'node-pill active';
+        document.getElementById('reelImg1').src = frameSrc;
+
+        if (t > 2.0) {
+          document.getElementById('s1Status').innerText = "✓ Reel Detected! Pipeline Triggered.";
+          document.getElementById('s1Status').style.color = "#22D3EE";
+          document.getElementById('s1Pulse').style.background = "#10B981";
+        } else {
+          document.getElementById('s1Status').innerText = "Scanning user profile for new uploads...";
+          document.getElementById('s1Status').style.color = "#F1F5F9";
+        }
+        g1.style.background = "#833AB4";
+        g2.style.background = "#FD1D1D";
+      } 
+      else if (t < 7.5) {
+        n1.className = 'node-pill done';
+        n2.className = 'node-pill active';
+        n3.className = 'node-pill active';
+
+        const shift = Math.floor((t - 3.5) * 20);
+        for (let i = 0; i < 48; i++) {
+          const val = waveformData[(i + shift) % waveformData.length];
+          const height = Math.max(6, Math.min(125, val * 125 * (0.8 + 0.35 * Math.sin(t * 14 + i))));
+          const b = document.getElementById('wb_' + i);
+          if (b) b.style.height = height + 'px';
+        }
+
+        const dt2 = t - 3.5;
+        const shazamMatch = document.getElementById('shazamMatch');
+        if (dt2 > 1.2) {
+          shazamMatch.style.opacity = '1';
+        } else {
+          shazamMatch.style.opacity = '0';
+        }
+
+        g1.style.background = "#06B6D4";
+        g2.style.background = "#3B82F6";
+      }
+      else if (t < 12.0) {
+        n1.className = 'node-pill done';
+        n2.className = 'node-pill done';
+        n3.className = 'node-pill done';
+        n4.className = 'node-pill amber';
+        n5.className = 'node-pill amber';
+
+        const fullCaption = "Some moments don't need an explanation — the music says everything. ✨";
+        const dt3 = t - 7.5;
+        const charsToShow = Math.min(fullCaption.length, Math.floor(dt3 * 22));
+        document.getElementById('ollamaTyping').innerText = fullCaption.substring(0, charsToShow) + (charsToShow < fullCaption.length ? "▋" : "");
+
+        const tagsEl = document.getElementById('ollamaTags');
+        if (dt3 > 2.0) {
+          tagsEl.style.opacity = '1';
+        } else {
+          tagsEl.style.opacity = '0';
+        }
+
+        g1.style.background = "#F59E0B";
+        g2.style.background = "#D97706";
+      }
+      else if (t < 16.5) {
+        n1.className = 'node-pill done';
+        n2.className = 'node-pill done';
+        n3.className = 'node-pill done';
+        n4.className = 'node-pill done';
+        n5.className = 'node-pill done';
+        n6.className = 'node-pill done active';
+
+        document.getElementById('reelImg4').src = frameSrc;
+
+        const dt4 = t - 12.0;
+        const check = document.getElementById('s4Check');
+        if (dt4 > 1.2) {
+          check.style.transform = 'scale(1.15)';
+        } else {
+          check.style.transform = 'scale(1.0)';
+        }
+
+        g1.style.background = "#10B981";
+        g2.style.background = "#06B6D4";
+      }
+      else {
+        [n1,n2,n3,n4,n5,n6].forEach(n => n.className = 'node-pill done');
+
+        const dt5 = t - 16.5;
+        const heroLogo = document.getElementById('heroLogo');
+        const scale = 1.0 + Math.min(0.06, dt5 * 0.015);
+        heroLogo.style.transform = `scale(${scale})`;
+
+        g1.style.background = "#833AB4";
+        g2.style.background = "#FD1D1D";
+      }
+    };
+  </script>
+</body>
+</html>
